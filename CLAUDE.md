@@ -12,8 +12,10 @@ Native Windows 11 support is provided via **Git for Windows** (Git Bash). WSL is
 
 **Setup:**
 1. Install [Git for Windows](https://git-scm.com/download/win) — select "Git from the command line and also from 3rd-party software" to add bash to PATH
-2. Install Python 3.9+ for memory/dashboard features
-3. Run `npm install && npm test` from any terminal (CMD, PowerShell, or Git Bash)
+2. Install [jq](https://jqlang.github.io/jq/) — `winget install jqlang.jq` (required for orchestration scripts)
+3. Install Python 3.9+ for memory/dashboard features
+4. Run `npm install -g .` from the repo to install the `loki` CLI and register skills
+5. Open a new terminal (so PATH updates take effect), then run `loki doctor` to verify
 
 **What works on Windows:**
 - All Node.js tests (`npm test`) — bash syntax checks use `scripts/check-bash-syntax.js` which auto-detects Git Bash
