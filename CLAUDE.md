@@ -97,22 +97,33 @@ LOKI_PROVIDER=codex loki start ./prd.md
 ```
 
 ### Quality Gates
-1. Static analysis (CodeQL, ESLint)
-2. 3-reviewer parallel system (blind review)
-3. Anti-sycophancy checks (devil's advocate on unanimous approval)
-4. Severity-based blocking (Critical/High/Medium = BLOCK)
-5. Test coverage gates (>80% unit, 100% pass)
+1. Shell syntax validation (bash -n, shellcheck)
+2. Node.js unit tests + Python pytest suite
+3. Mock/mutation detection (detect-mock-problems.sh, detect-test-mutations.sh)
+4. 3-reviewer parallel system (blind review in run.sh)
+5. Anti-sycophancy scoring (swarm/sycophancy.py - Jaccard similarity, verdict unanimity)
+6. Severity-based blocking (Critical/High = BLOCK, returns non-zero)
+7. Budget circuit breaker (creates .loki/PAUSE on overspend)
+8. Policy engine enforcement (.loki/policies.json)
+9. Test coverage gates (>80% unit, 100% pass)
 
-### Memory System (v5.15.0 - Complete Implementation)
+CodeQL runs on push/PR to main and dev branches (.github/workflows/codeql.yml). ESLint runs only in vscode-extension and dashboard/frontend, not as a CI gate.
+
+### Memory System (v5.43.0 - Complete Implementation)
 - **Episodic**: Specific interaction traces (`.loki/memory/episodic/`)
 - **Semantic**: Generalized patterns (`.loki/memory/semantic/`)
 - **Procedural**: Learned skills (`.loki/memory/skills/`)
-- **Progressive Disclosure**: 3-layer loading (index, timeline, full details)
-- **Token Economics**: Discovery vs read token tracking
-- **Vector Search**: Optional embedding-based similarity (sentence-transformers)
+- **Progressive Disclosure**: 3-layer loading (index ~100 tokens, timeline ~500 tokens, full details)
+- **Token Economics**: Discovery vs read token tracking with threshold-based actions
+- **Vector Search**: Multi-provider embeddings (sentence-transformers, OpenAI, Cohere) with numpy cosine similarity fallback to TF-IDF
+- **Consolidation**: 7-step pipeline (load, cluster, extract, merge, anti-pattern detect, Zettelkasten link, stats)
+- **Namespace**: Auto-detects project identity from git/package.json for cross-project isolation
+- **Unified Access**: Integrates retrieval with token economics (unified_access.py)
+- **Knowledge Graph**: Cross-project pattern aggregation (knowledge_graph.py)
+- **RAG Injector**: Context builder for prompt injection (rag_injector.py)
 - **CLI**: `loki memory index|timeline|consolidate|economics|retrieve|episode|pattern|skill|vectors`
-- **API**: REST endpoints at `/api/memory/*`
-- **Implementation**: `memory/` Python package with RARV integration
+- **API**: REST endpoints at `/api/memory/*` (12 endpoints)
+- **Implementation**: `memory/` Python package (~12,016 lines) with RARV integration
 
 ### Metrics System (ToolOrchestra-inspired)
 - **Efficiency**: Task cost tracking (`.loki/metrics/efficiency/`)
@@ -124,40 +135,47 @@ LOKI_PROVIDER=codex loki start ./prd.md
 
 | File | Lines | Role |
 |---|---|---|
-| `autonomy/loki` | 10,820 | CLI (74 cmd_ functions, dispatch at line 7400) |
-| `autonomy/run.sh` | 8,766 | Orchestration engine (RARV loop) |
+| `autonomy/loki` | 12,089 | CLI (78 cmd_ functions, dispatch at line ~7768) |
+| `autonomy/run.sh` | 9,604 | Orchestration engine (RARV loop) |
 | `autonomy/completion-council.sh` | 1,403 | Completion detection (council voting) |
-| `dashboard/server.py` | 4,482 | FastAPI (100+ endpoints, WebSocket) |
+| `dashboard/server.py` | 4,635 | FastAPI (116 HTTP + 1 WebSocket endpoint) |
 | `memory/retrieval.py` | 1,565 | Task-aware memory retrieval |
 | `memory/storage.py` | 1,396 | File-based memory backend |
 | `memory/engine.py` | 1,297 | Memory orchestrator |
-| `memory/consolidation.py` | 951 | Episodic-to-semantic pipeline |
-| `mcp/server.py` | 1,439 | MCP server (15 tools) |
-| `providers/loader.sh` | 184 | Provider loader |
+| `memory/embeddings.py` | 1,330 | Multi-provider vector embeddings |
+| `memory/consolidation.py` | 951 | Episodic-to-semantic 7-step pipeline |
+| `memory/schemas.py` | 782 | Pydantic-like dataclass schemas |
+| `memory/token_economics.py` | 631 | Token usage tracking and optimization |
+| `memory/unified_access.py` | 591 | Retrieval + token economics integration |
+| `memory/namespace.py` | 582 | Project namespace auto-detection |
+| `memory/vector_index.py` | 459 | Pure numpy cosine similarity index |
+| `mcp/server.py` | 1,439 | MCP server (13 tools, 3 resources, 2 prompts) |
+| `providers/loader.sh` | 184 | Provider loader and auto-detection |
 
 ### Key Function Lookup
 
 | Function | Location | Purpose |
 |---|---|---|
-| `cmd_start()` | `loki:485` | Start autonomous execution |
-| `main()` (CLI) | `loki:7400` | CLI dispatch |
-| `main()` (runner) | `run.sh:8234` | Runner entry point |
-| `run_autonomous()` | `run.sh:7233` | Main iteration loop |
-| `build_prompt()` | `run.sh:6899` | Prompt construction |
-| `save_state()` | `run.sh:6787` | Persist state |
+| `cmd_start()` | `loki:489` | Start autonomous execution |
+| `main()` (CLI) | `loki:7768` | CLI dispatch (case statement at 7779) |
+| `main()` (runner) | `run.sh:9072` | Runner entry point |
+| `run_autonomous()` | `run.sh:7982` | Main iteration loop |
+| `build_prompt()` | `run.sh:7493` | Prompt construction |
+| `save_state()` | `run.sh:7381` | Persist state |
 | `council_should_stop()` | `completion-council.sh:1283` | Completion decision |
-| `run_code_review()` | `run.sh:4935` | 3-reviewer code review |
-| `create_checkpoint()` | `run.sh:5483` | Snapshot state |
-| `store_episode_trace()` | `run.sh:6626` | Memory storage bridge |
-| `check_human_intervention()` | `run.sh:7897` | PAUSE/STOP/INPUT signals |
-| `detect_complexity()` | `run.sh:1182` | Auto-detect project complexity |
-| `get_rarv_tier()` | `run.sh:1311` | Map iteration to model tier |
-| `check_budget_limit()` | `run.sh:6125` | Budget circuit breaker |
-| `is_rate_limited()` | `run.sh:5940` | Rate limit detection |
+| `run_code_review()` | `run.sh:5474` | 3-reviewer blind code review |
+| `create_checkpoint()` | `run.sh:6077` | Snapshot state (retains last 50) |
+| `store_episode_trace()` | `run.sh:7220` | Memory storage bridge |
+| `check_human_intervention()` | `run.sh:8735` | PAUSE/STOP/INPUT signals |
+| `detect_complexity()` | `run.sh:1204` | Auto-detect project complexity |
+| `get_rarv_tier()` | `run.sh:1333` | Map iteration to model tier |
+| `get_rarv_phase_name()` | `run.sh:1357` | Map iteration mod 4 to RARV phase |
+| `check_budget_limit()` | `run.sh:6719` | Budget circuit breaker |
+| `is_rate_limited()` | `run.sh:6534` | Rate limit detection with backoff |
 
 ### Critical Data Flow
 
-A PRD enters via `loki start` (line 485), which execs `run.sh`. The `run_autonomous()` loop (line 7233) builds prompts via `build_prompt()` (line 6899) injecting RARV instructions, SDLC phases, memory context, queue tasks, and checklist status. The provider is invoked (Claude via `-p` flag, Codex via `exec --full-auto` with `CODEX_MODEL_REASONING_EFFORT` env var, Gemini via positional prompt with `--approval-mode=yolo`). Post-iteration, the system runs checklist verification, app runner management, playwright smoke tests, and code review. Completion is determined by a council vote (`council_should_stop` at completion-council.sh:1283), completion promise text, or max iterations. All components communicate through `.loki/` filesystem state files.
+A PRD enters via `loki start` (line 489), which execs `run.sh`. The `run_autonomous()` loop (line 7982) builds prompts via `build_prompt()` (line 7493) injecting RARV instructions, SDLC phases, memory context, queue tasks, and checklist status. The provider is invoked (Claude via `-p` flag, Codex via `exec --full-auto` with `CODEX_MODEL_REASONING_EFFORT` env var, Gemini via positional prompt with `--approval-mode=yolo`). Post-iteration, the system runs checklist verification, app runner management, playwright smoke tests, and code review. Completion is determined by a council vote (`council_should_stop` at completion-council.sh:1283), completion promise text, or max iterations. All components communicate through `.loki/` filesystem state files.
 
 See `.claude/projects/-Users-lokesh-git-loki-mode/memory/CODEBASE-KNOWLEDGE-GRAPH.md` for complete reference.
 

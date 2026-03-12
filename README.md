@@ -9,7 +9,7 @@
 [![Agent Types](https://img.shields.io/badge/Agent%20Types-41-blue)]()
 [![Autonomi](https://img.shields.io/badge/Autonomi-autonomi.dev-5B4EEA)](https://www.autonomi.dev/)
 
-**Current Version: v6.6.1**
+**Current Version: v6.12.5**
 
 ---
 
@@ -170,7 +170,7 @@ Run `loki --help` for all commands. Full reference: [CLI Reference](wiki/CLI-Ref
 
 ## Enterprise
 
-Enterprise features are included but require env var activation. Self-audit results: 35/45 capabilities working, 0 broken, 1,314 tests passing (683 npm + 631 pytest). 2 items partial, 3 scaffolding (OTEL/policy active only when configured). See [Audit Results](.loki/audit/integrity-audit-v5.52.0.md).
+Enterprise features are included but require env var activation. Self-audit results: 35/45 capabilities working, 0 broken. 2 items partial, 3 scaffolding (OTEL/policy active only when configured). See [Audit Results](.loki/audit/integrity-audit-v5.52.0.md).
 
 ```bash
 export LOKI_TLS_ENABLED=true
@@ -219,9 +219,9 @@ Results from the included test harness. Self-reported and not independently veri
 
 ```bash
 git clone https://github.com/asklokesh/loki-mode.git && cd loki-mode
-npm install && npm test              # 683 tests, ~10 sec
-python3 -m pytest                    # 631 tests, ~3 sec
-bash tests/run-all-tests.sh          # shell tests, ~2 min
+npm install && npm test              # Node.js + shell syntax tests
+python3 -m pytest                    # Python tests
+bash tests/run-all-tests.sh          # full shell test suite
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
