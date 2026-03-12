@@ -57,3 +57,6 @@ _spec = importlib.util.spec_from_file_location(
 )
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
+
+# server.py only runs main() when invoked as __main__ — call it explicitly.
+_mod.main()
