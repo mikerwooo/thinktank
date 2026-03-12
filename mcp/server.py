@@ -417,35 +417,61 @@ def _emit_context_relevance_signal(
 
 
 # BUG #3 FIX: The local mcp/ package shadows the pip-installed mcp SDK.
-# Load FastMCP directly from site-packages using importlib.util to bypass
-# Python's package name resolution entirely (avoids infinite recursion).
+# If sys.modules['mcp'] already points to the pip SDK (e.g. loaded via the
+# loki-mcp-server.py wrapper), just import normally. Otherwise fall back to
+# loading FastMCP directly from site-packages via importlib to bypass Python's
+# package name resolution (avoids infinite recursion).
 import importlib.util
 import site
 
 _fastmcp_found = False
-_search_paths = []
-try:
-    _search_paths.extend(site.getsitepackages())
-except AttributeError:
-    pass
-try:
-    _search_paths.append(site.getusersitepackages())
-except AttributeError:
-    pass
 
-for _site_dir in _search_paths:
-    _fastmcp_path = os.path.join(_site_dir, "mcp", "server", "fastmcp.py")
-    if os.path.isfile(_fastmcp_path):
-        _spec = importlib.util.spec_from_file_location(
-            "mcp_pip_sdk.server.fastmcp", _fastmcp_path,
-            submodule_search_locations=[]
-        )
-        if _spec and _spec.loader:
-            _fastmcp_mod = importlib.util.module_from_spec(_spec)
-            _spec.loader.exec_module(_fastmcp_mod)
-            FastMCP = _fastmcp_mod.FastMCP
+# Fast path: pip SDK is already in sys.modules (wrapper pre-loaded it)
+_mcp_mod = sys.modules.get("mcp")
+if _mcp_mod and hasattr(_mcp_mod, "__file__") and _mcp_mod.__file__:
+    _mcp_mod_path = os.path.normcase(_mcp_mod.__file__)
+    _repo_path = os.path.normcase(os.path.dirname(os.path.abspath(__file__)))
+    if not _mcp_mod_path.startswith(_repo_path):
+        try:
+            from mcp.server.fastmcp import FastMCP  # noqa: E402
             _fastmcp_found = True
-            break
+        except ImportError:
+            pass
+
+# Slow path: manually locate fastmcp in site-packages
+if not _fastmcp_found:
+    _search_paths = []
+    try:
+        _search_paths.extend(site.getsitepackages())
+    except AttributeError:
+        pass
+    try:
+        _search_paths.append(site.getusersitepackages())
+    except AttributeError:
+        pass
+
+    for _site_dir in _search_paths:
+        # Support both old (fastmcp.py) and new (fastmcp/__init__.py) SDK layouts
+        _fastmcp_pkg = os.path.join(_site_dir, "mcp", "server", "fastmcp", "__init__.py")
+        _fastmcp_file = os.path.join(_site_dir, "mcp", "server", "fastmcp.py")
+        _fastmcp_path = _fastmcp_pkg if os.path.isfile(_fastmcp_pkg) else _fastmcp_file
+        if os.path.isfile(_fastmcp_path):
+            # Register full mcp package hierarchy in sys.modules so relative
+            # imports inside fastmcp resolve correctly.
+            _mcp_init = os.path.join(_site_dir, "mcp", "__init__.py")
+            if os.path.isfile(_mcp_init) and "mcp" not in sys.modules:
+                _mcp_spec = importlib.util.spec_from_file_location("mcp", _mcp_init,
+                    submodule_search_locations=[os.path.join(_site_dir, "mcp")])
+                if _mcp_spec and _mcp_spec.loader:
+                    _mcp_sdk = importlib.util.module_from_spec(_mcp_spec)
+                    sys.modules["mcp"] = _mcp_sdk
+                    _mcp_spec.loader.exec_module(_mcp_sdk)
+            try:
+                from mcp.server.fastmcp import FastMCP  # noqa: E402
+                _fastmcp_found = True
+                break
+            except ImportError:
+                pass
 
 if not _fastmcp_found:
     logger.error("MCP SDK (pip package 'mcp') not found in site-packages. Install with: pip install mcp")
@@ -461,8 +487,7 @@ except Exception:
 # Initialize FastMCP server
 mcp = FastMCP(
     "loki-mode",
-    version=_version,
-    description="Loki Mode autonomous agent orchestration"
+    instructions="Loki Mode autonomous agent orchestration"
 )
 
 # ============================================================
