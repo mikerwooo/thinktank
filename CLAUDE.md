@@ -6,6 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The flagship product of [Autonomi](https://www.autonomi.dev/). Multi-agent autonomous startup system for Claude Code, OpenAI Codex CLI, and Google Gemini CLI. Takes PRD to fully deployed product with minimal human intervention.
 
+## Windows 11 Support
+
+Native Windows 11 support is provided via **Git for Windows** (Git Bash). WSL is not required.
+
+**Setup:**
+1. Install [Git for Windows](https://git-scm.com/download/win) — select "Git from the command line and also from 3rd-party software" to add bash to PATH
+2. Install Python 3.9+ for memory/dashboard features
+3. Run `npm install && npm test` from any terminal (CMD, PowerShell, or Git Bash)
+
+**What works on Windows:**
+- All Node.js tests (`npm test`) — bash syntax checks use `scripts/check-bash-syntax.js` which auto-detects Git Bash
+- Python memory/dashboard modules — `fcntl` file locking is a no-op on Windows (acceptable for single-user desktop use)
+- `loki-mode` binary — auto-detects Git Bash location to spawn the CLI
+- Skill symlinks — created as junction points (no Developer Mode or elevation required)
+
+**What requires the autonomous runner (`loki start`):**
+- Git Bash must be in PATH for the bash-based orchestration engine to run
+
 ## Commands
 
 ### Build

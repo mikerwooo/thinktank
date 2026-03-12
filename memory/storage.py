@@ -12,7 +12,10 @@ import math
 import os
 import tempfile
 import shutil
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Windows: file locking unavailable, falls back to no-op
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Union
@@ -182,12 +185,14 @@ class MemoryStorage:
         try:
             # Create lock file if it doesn't exist
             lock_file = open(lock_path, "w")
-            lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
-            fcntl.flock(lock_file.fileno(), lock_type)
+            if fcntl is not None:
+                lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+                fcntl.flock(lock_file.fileno(), lock_type)
             yield
         finally:
             if lock_file is not None:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                if fcntl is not None:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
                 lock_file.close()
                 try:
                     os.remove(lock_path)

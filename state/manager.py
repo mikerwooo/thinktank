@@ -11,7 +11,10 @@ Provides unified state management with:
 
 import json
 import os
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Windows: file locking unavailable, falls back to no-op
 import tempfile
 import shutil
 import threading
@@ -387,9 +390,11 @@ class FileNotificationChannel(NotificationChannel):
                 "diff": change.get_diff()
             }
             with open(self.notification_file, "a") as f:
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                if fcntl is not None:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 f.write(json.dumps(notification) + "\n")
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                if fcntl is not None:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except IOError:
             pass  # File notification errors shouldn't break state management
 
@@ -602,12 +607,14 @@ class StateManager:
         lock_file = None
         try:
             lock_file = open(lock_path, "w")
-            lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
-            fcntl.flock(lock_file.fileno(), lock_type)
+            if fcntl is not None:
+                lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+                fcntl.flock(lock_file.fileno(), lock_type)
             yield
         finally:
             if lock_file is not None:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                if fcntl is not None:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
                 lock_file.close()
 
     # -------------------------------------------------------------------------
