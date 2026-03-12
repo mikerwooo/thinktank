@@ -26,6 +26,13 @@ Native Windows 11 support is provided via **Git for Windows** (Git Bash). WSL is
 **What requires the autonomous runner (`loki start`):**
 - Git Bash must be in PATH for the bash-based orchestration engine to run
 
+## Git Workflow
+
+- **`dev`** is the integration branch — all feature branches are merged here via PR
+- **`main`** is the release branch — only `dev` merges into `main` (via PR, on release)
+- Never push directly to `main` or `dev`; always use a PR
+- Branch naming: `feature/<name>`, `fix/<name>`, `docs/<name>`
+
 ## Commands
 
 ### Build
@@ -338,7 +345,7 @@ bash -n autonomy/loki
 ```bash
 git add -A
 git commit -m "release: vX.Y.Z - description"
-git push origin main
+git push origin dev
 ```
 
 **IMPORTANT:** Do NOT manually create tags. The GitHub Actions workflow automatically:
