@@ -1,80 +1,77 @@
-# Loki Mode - Claude Code Skill
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## About
 
 The flagship product of [Autonomi](https://www.autonomi.dev/). Multi-agent autonomous startup system for Claude Code, OpenAI Codex CLI, and Google Gemini CLI. Takes PRD to fully deployed product with minimal human intervention.
 
-## Quick Start
+## Commands
 
+### Build
 ```bash
-# Launch Claude Code with autonomous permissions
-claude --dangerously-skip-permissions
+# Build dashboard frontend (required before release; writes to dashboard/static/ and dashboard-ui/dist/)
+cd dashboard-ui && npm ci && npm run build:all && cd ..
 
-# Then invoke:
-# "Loki Mode" or "Loki Mode with PRD at path/to/prd"
+# Build VSCode extension
+cd vscode-extension && npm run compile && cd ..
+
+# Build TypeScript SDK
+cd sdk/typescript && npm run build && cd ..
+
+# Watch mode for dashboard frontend (development)
+cd dashboard-ui && npm run build:watch
 ```
 
-## Project Structure
+### Test
+```bash
+# Full test suite (shell validation + Node.js unit tests + Python tests)
+npm test
 
+# Run a specific Node.js test file
+node --test tests/protocols/a2a/some.test.js
+
+# Run all tests in a subdirectory
+node --test tests/protocols/*.test.js
+
+# Dashboard-only tests
+cd dashboard-ui && npm run test:all   # E2E + visual + parity
+cd dashboard-ui && npm run test:e2e   # Playwright E2E only
+
+# Python tests (memory system, dashboard API)
+python3 -m pytest
+
+# Shell script validation
+bash -n autonomy/run.sh
+bash -n autonomy/loki
+bash tests/run-shellcheck.sh
+
+# Benchmarks
+./benchmarks/run-benchmarks.sh humaneval --execute --loki
+./benchmarks/run-benchmarks.sh swebench --execute --loki
 ```
-SKILL.md                    # Slim core skill (~266 lines) - progressive disclosure
-providers/                  # Multi-provider support (v5.0.0)
-  claude.sh                 # Claude Code - full features
-  codex.sh                  # OpenAI Codex CLI - degraded mode
-  gemini.sh                 # Google Gemini CLI - degraded mode
-  loader.sh                 # Provider loader utility
-memory/                     # Complete memory system (v5.15.0)
-  engine.py                 # Core memory engine
-  schemas.py                # Pydantic schemas
-  storage.py                # Storage backend
-  retrieval.py              # Task-aware retrieval
-  consolidation.py          # Episodic-to-semantic pipeline
-  token_economics.py        # Token usage tracking
-  embeddings.py             # Vector embeddings (optional)
-  vector_index.py           # Vector search index
-  layers/                   # Progressive disclosure implementation
-skills/                     # On-demand skill modules (v3.0 architecture)
-  00-index.md               # Module selection rules and routing
-  model-selection.md        # Task tool, parallelization, thinking modes
-  providers.md              # Multi-provider documentation
-  quality-gates.md          # 9-gate system, velocity-quality balance
-  testing.md                # Playwright, E2E, property-based testing
-  production.md             # HN patterns, CI/CD, context management
-  troubleshooting.md        # Common issues, red flags, fallbacks
-  agents.md                 # 41 agent types, structured prompting
-  artifacts.md              # Generation, code transformation
-  patterns-advanced.md      # OptiMind, k8s-valkey, Constitutional AI
-  parallel-workflows.md     # Git worktrees, parallel streams, auto-merge
-  github-integration.md     # GitHub issue import, PR creation, notifications
-references/                 # Detailed documentation (20 files)
-  openai-patterns.md        # OpenAI Agents SDK: guardrails, tripwires, handoffs
-  lab-research-patterns.md  # DeepMind + Anthropic: Constitutional AI, debate
-  production-patterns.md    # HN 2025: What actually works in production
-  advanced-patterns.md      # 2025 research patterns (MAR, Iter-VF, GoalAct)
-  tool-orchestration.md     # ToolOrchestra-inspired efficiency & rewards
-  memory-system.md          # Episodic/semantic memory architecture
-  quality-control.md        # Code review, anti-sycophancy, guardrails
-  agent-types.md            # 41 specialized agent definitions
-  sdlc-phases.md            # Full SDLC workflow
-  task-queue.md             # Queue system, circuit breakers
-  core-workflow.md          # RARV cycle, autonomy rules
-  deployment.md             # Cloud deployment instructions
-  business-ops.md           # Business operation workflows
-  mcp-integration.md        # MCP server capabilities
-  competitive-analysis.md   # Auto-Claude, MemOS, Dexter comparison
-  confidence-routing.md     # Model selection by confidence
-  cursor-learnings.md       # Cursor scaling patterns
-  prompt-repetition.md      # Haiku prompt optimization
-  agents.md                 # Agent dispatch patterns
-events/                     # Unified Event Bus (v5.17.0)
-  bus.py                    # Python event bus
-  bus.ts                    # TypeScript event bus
-  emit.sh                   # Bash helper for emitting events
-docs/                       # Architecture documentation
-  SYNERGY-ROADMAP.md        # 5-pillar tool integration architecture
-autonomy/                   # Runtime and autonomous execution
-  context-tracker.py        # Context window usage tracking
-  notification-checker.py   # Notification trigger evaluation
-templates/                  # 13 PRD templates (saas, cli, discord-bot, etc.)
-benchmarks/                 # SWE-bench and HumanEval benchmarks
+
+### Lint
+```bash
+cd vscode-extension && npm run lint
+cd dashboard/frontend && npm run lint
+```
+
+### Run (Development)
+```bash
+# Dashboard API server (port 57374)
+python3 dashboard/server.py
+
+# Dashboard frontend dev server
+cd dashboard/frontend && npm run dev
+
+# VSCode extension watch mode
+cd vscode-extension && npm run watch
+
+# Run loki directly (after npm install -g loki-mode or local setup)
+./autonomy/loki start ./prd.md
+./autonomy/run.sh --provider codex ./prd.md
+LOKI_PROVIDER=gemini ./autonomy/loki start ./prd.md
 ```
 
 ## Key Concepts
