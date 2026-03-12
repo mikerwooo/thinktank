@@ -6,6 +6,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The flagship product of [Autonomi](https://www.autonomi.dev/). Multi-agent autonomous startup system for Claude Code, OpenAI Codex CLI, and Google Gemini CLI. Takes PRD to fully deployed product with minimal human intervention.
 
+## Windows 11 Support
+
+Native Windows 11 support is provided via **Git for Windows** (Git Bash). WSL is not required.
+
+**Setup:**
+1. Install [Git for Windows](https://git-scm.com/download/win) — select "Git from the command line and also from 3rd-party software" to add bash to PATH
+2. Install [jq](https://jqlang.github.io/jq/) — `winget install jqlang.jq` (required for orchestration scripts)
+3. Install Python 3.9+ for memory/dashboard features
+4. Run `npm install -g .` from the repo to install the `loki` CLI and register skills
+5. Open a new terminal (so PATH updates take effect), then run `loki doctor` to verify
+
+**What works on Windows:**
+- All Node.js tests (`npm test`) — bash syntax checks use `scripts/check-bash-syntax.js` which auto-detects Git Bash
+- Python memory/dashboard modules — `fcntl` file locking is a no-op on Windows (acceptable for single-user desktop use)
+- `loki-mode` binary — auto-detects Git Bash location to spawn the CLI
+- Skill symlinks — created as junction points (no Developer Mode or elevation required)
+
+**What requires the autonomous runner (`loki start`):**
+- Git Bash must be in PATH for the bash-based orchestration engine to run
+
+## Git Workflow
+
+- **`dev`** is the integration branch — all feature branches are merged here via PR
+- **`main`** is the release branch — only `dev` merges into `main` (via PR, on release)
+- Never push directly to `main` or `dev`; always use a PR
+- Branch naming: `feature/<name>`, `fix/<name>`, `docs/<name>`
+
 ## Commands
 
 ### Build
@@ -318,7 +345,7 @@ bash -n autonomy/loki
 ```bash
 git add -A
 git commit -m "release: vX.Y.Z - description"
-git push origin main
+git push origin dev
 ```
 
 **IMPORTANT:** Do NOT manually create tags. The GitHub Actions workflow automatically:

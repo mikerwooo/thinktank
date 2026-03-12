@@ -11,7 +11,10 @@ Usage:
 """
 
 import asyncio
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Windows: file locking unavailable, falls back to no-op
 import json
 import os
 import signal

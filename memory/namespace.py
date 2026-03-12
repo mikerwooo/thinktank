@@ -15,7 +15,10 @@ Based on competitor analysis (claude-mem project isolation patterns).
 
 from __future__ import annotations
 
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Windows: file locking unavailable, falls back to no-op
 import json
 import os
 import re
@@ -143,12 +146,14 @@ class NamespaceManager:
         lock_file = None
         try:
             lock_file = open(lock_path, "w")
-            lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
-            fcntl.flock(lock_file.fileno(), lock_type)
+            if fcntl is not None:
+                lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+                fcntl.flock(lock_file.fileno(), lock_type)
             yield
         finally:
             if lock_file is not None:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+                if fcntl is not None:
+                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
                 lock_file.close()
                 try:
                     os.remove(lock_path)

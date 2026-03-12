@@ -57,9 +57,9 @@ for (const target of skillTargets) {
       }
     }
 
-    // Create symlink
+    // Create symlink (junction on Windows to avoid elevation requirement)
     if (!fs.existsSync(target.dir)) {
-      fs.symlinkSync(packageDir, target.dir);
+      fs.symlinkSync(packageDir, target.dir, process.platform === 'win32' ? 'junction' : undefined);
     }
     results.push({ name: target.name, path: target.dir, ok: true });
   } catch (err) {

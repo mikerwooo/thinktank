@@ -44,7 +44,9 @@ Every iteration follows the **RARV cycle**: Reason (read state, identify next ta
 
 ## Quick Start
 
-**Requirements:** Node.js 18+, Python 3.8+, macOS/Linux/WSL2, and at least one AI CLI (Claude Code, Codex, Gemini, Cline, or Aider).
+**Requirements:** Node.js 18+, Python 3.8+, macOS/Linux/Windows 11, and at least one AI CLI (Claude Code, Codex, Gemini, Cline, or Aider).
+
+**Windows 11:** Install [Git for Windows](https://git-scm.com/download/win) (select "Git from the command line" during setup) and run `winget install jqlang.jq`. Then `npm install -g loki-mode` and open a new terminal. No WSL required.
 
 ### CLI Mode
 

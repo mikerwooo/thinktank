@@ -10,7 +10,10 @@ See docs/SYNERGY-ROADMAP.md for full architecture documentation.
 
 from __future__ import annotations
 
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Windows: file locking unavailable, falls back to no-op
 import json
 import os
 from datetime import datetime, timezone
@@ -104,9 +107,11 @@ def emit_signal(
     # Write signal to file with locking
     try:
         with open(signal_file, 'w') as f:
-            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            if fcntl is not None:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
             json.dump(signal.to_dict(), f, indent=2)
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            if fcntl is not None:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
     except IOError as e:
         raise RuntimeError(f"Failed to write signal: {e}")
 

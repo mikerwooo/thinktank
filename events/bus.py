@@ -9,7 +9,10 @@ import json
 import os
 import time
 import uuid
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None  # Windows: file locking unavailable, falls back to no-op
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from enum import Enum
@@ -145,11 +148,13 @@ class EventBus:
 
         try:
             with open(self.processed_file, 'w') as f:
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                if fcntl is not None:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     json.dump({'ids': list(self._processed_ids)}, f)
                 finally:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                    if fcntl is not None:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except IOError:
             pass
 
@@ -167,11 +172,13 @@ class EventBus:
 
         try:
             with open(event_file, 'w') as f:
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                if fcntl is not None:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     json.dump(event.to_dict(), f, indent=2)
                 finally:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                    if fcntl is not None:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except IOError as e:
             raise RuntimeError(f"Failed to emit event: {e}")
 
